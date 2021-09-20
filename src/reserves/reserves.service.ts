@@ -18,38 +18,42 @@ export class ReservesService {
   }
 
   async createReservation(createReservesDto: CreateReservesDto) {
-    await this.reservationsPerDay(createReservesDto);
+    const limit = (await this.configurationService.findOne()).limitPerDay;
+    await this.reservationsPerDay(createReservesDto, limit);
     await this.validationReservationsPerUser(
       createReservesDto.date,
       createReservesDto.user,
       createReservesDto.period,
     );
-    const reservations = await this.reservationsPerPeriod(createReservesDto);
-    if (reservations.length < 1) {
-      await this.reservesRepository.save(createReservesDto);
-      return {
-        message: 'Salvo com sucesso a primeira vez do turno!',
-      };
-    } else {
-      this.verifyTotalPerPeriod(reservations.length, createReservesDto.period);
-      await this.reservesRepository.save(createReservesDto);
-      return {
-        message: 'Salvo com sucesso!',
-      };
-    }
+    await this.validateReservationsPerPeriod(createReservesDto, limit);
+    await this.reservesRepository.save(createReservesDto);
+    return {
+      message: 'Salvo com sucesso!',
+    };
   }
 
-  private async reservationsPerPeriod(createReservesDto: CreateReservesDto) {
-    return await this.reservesRepository.find({
+  private async validateReservationsPerPeriod(
+    createReservesDto: CreateReservesDto,
+    limit: number,
+  ) {
+    const reservation = await this.reservesRepository.find({
       where: {
         date: createReservesDto.date,
         period: createReservesDto.period,
       },
     });
+    if (reservation.length >= limit) {
+      throw new BadRequestException(
+        `Excedido o limite de reservas no respectivo turno ${createReservesDto.period}`,
+      );
+    }
   }
 
-  private async reservationsPerDay(createReservesDto: CreateReservesDto) {
-    const limit = (await this.configurationService.findOne()).limitPerDay * 2;
+  private async reservationsPerDay(
+    createReservesDto: CreateReservesDto,
+    limit: number,
+  ) {
+    limit = limit * 2;
     const reservations = await this.reservesRepository.find({
       where: {
         date: createReservesDto.date,
@@ -67,27 +71,16 @@ export class ReservesService {
     user: Users,
     period: string,
   ) {
-    const reservationsPerUser = await this.reservesRepository.find({
+    const reservationsPerUser = await this.reservesRepository.findOne({
       where: {
         date: date,
         user: user,
         period: period,
       },
     });
-    if (reservationsPerUser.length > 0) {
+    if (reservationsPerUser) {
       throw new BadRequestException(
         `Usuário já possui reserva para o respectivo periodo: ${period}`,
-      );
-    }
-  }
-
-  private async verifyTotalPerPeriod(total: number, period: string) {
-    const limit = (await this.configurationService.findOne()).limitPerDay;
-    console.log(total);
-    console.log(limit);
-    if (total >= limit) {
-      throw new BadRequestException(
-        `Excedido o limite de reservas no respectivo turno ${period}`,
       );
     }
   }
