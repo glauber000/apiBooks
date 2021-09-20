@@ -13,7 +13,7 @@ export class ReservesController {
   }
 
   @Post()
-  insert(@Body() createReservesDto: CreateReservesDto) {
-    return this.reservesService.insert(createReservesDto);
+  createReservation(@Body() createReservesDto: CreateReservesDto) {
+    return this.reservesService.createReservation(createReservesDto);
   }
 }
