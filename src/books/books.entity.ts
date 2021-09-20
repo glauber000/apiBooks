@@ -12,9 +12,6 @@ export class Books {
   @Column()
   author: string;
 
-  @OneToMany(() => Reserves, (Reserve) => Reserve.book)
-  reserves: Reserves[];
-
   @Column({ default: 'N' })
   sn_reserved: string;
 }

@@ -10,7 +10,8 @@ export class Reserves {
   @Column()
   date: Date;
 
-  @ManyToOne(() => Users, (user) => user.reserves) user: Users;
+  @Column()
+  period: string;
 
-  @ManyToOne(() => Books, (books) => books.reserves) book: Books;
+  @ManyToOne(() => Users, (user) => user.reserves) user: Users;
 }

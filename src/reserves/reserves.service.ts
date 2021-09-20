@@ -1,4 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { ConfigurationService } from 'src/configuration/configuration.service';
 import { Repository } from 'typeorm';
 import { CreateReservesDto } from './dto/create.reserves.dto';
 import { Reserves } from './reserves.entity';
@@ -8,6 +9,7 @@ export class ReservesService {
   constructor(
     @Inject('RESERVES_REPOSITORY')
     private reservesRepository: Repository<Reserves>,
+    private readonly configurationService: ConfigurationService,
   ) {}
 
   async findAll(): Promise<Reserves[]> {
@@ -15,82 +17,66 @@ export class ReservesService {
   }
 
   async insert(createReservesDto: CreateReservesDto) {
-    const reservesUser = await this.reservesRepository.find(
-      createReservesDto.user,
-    );
-    if (reservesUser.length <= 0) {
-      this.reservesRepository.save(createReservesDto);
+    const limit = (await this.configurationService.findOne()).limitPerDay;
+    const reservations = await this.reservesRepository.find({
+      where: {
+        date: createReservesDto.date,
+        period: createReservesDto.period,
+      },
+    });
+    const reservationsPerUser = await this.reservesRepository.find({
+      where: {
+        date: createReservesDto.date,
+        user: createReservesDto.user,
+      },
+    });
+    if (reservationsPerUser.length > 0) {
       return {
-        message: 'Salvo com sucesso a primeira reserva!',
+        message: `Usuário já possui reserva para o respectivo dia: ${createReservesDto.date}`,
         error: false,
       };
     } else {
-      const hour = new Date(createReservesDto.date).getHours();
-      let morningCount = 0;
-      let eveningCount = 0;
-      const date = new Date(createReservesDto.date);
-      const dateFormated =
-        date.getFullYear().toString() +
-        '/' +
-        (date.getMonth() + 1).toString().padStart(0) +
-        '/' +
-        date.getDate().toString().padStart(0);
-      if (hour >= 6 && hour < 12) {
-        reservesUser.map((x) => {
-          if (
-            x.date.getHours() >= 6 &&
-            x.date.getHours() < 12 &&
-            x.date.getFullYear().toString() +
-              '/' +
-              (x.date.getMonth() + 1).toString().padStart(0) +
-              '/' +
-              x.date.getDate().toString().padStart(0) ==
-              dateFormated
-          )
-            morningCount++;
-        });
-        if (morningCount < 2) {
-          this.reservesRepository.save(createReservesDto);
-          return {
-            message: 'Salvo com sucesso!',
-            error: false,
-          };
-        } else {
-          return {
-            message: 'Você ja atingiu o limite de reservas pela manhã!',
-            error: true,
-          };
-        }
-      } else if (hour >= 12 && hour < 18) {
-        reservesUser.map((x) => {
-          if (
-            x.date.getHours() >= 12 &&
-            x.date.getHours() < 18 &&
-            x.date.getFullYear().toString() +
-              '/' +
-              (x.date.getMonth() + 1).toString().padStart(0) +
-              '/' +
-              x.date.getDate().toString().padStart(0) ==
-              dateFormated
-          )
-            eveningCount++;
-        });
-        if (eveningCount < 2) {
-          this.reservesRepository.save(createReservesDto);
-          return {
-            message: 'Salvo com sucesso!',
-            error: false,
-          };
-        }
+      if (reservations.length <= 0) {
+        await this.reservesRepository.save(createReservesDto);
         return {
-          message: 'Você ja atingiu o limite de reservas pela tarde!',
-          error: true,
+          message: 'Salvo com sucesso a primeira vez do turno!',
+          error: false,
         };
       } else {
-        return {
-          message: 'Horário não disponível para reserva',
-          error: true,
-        };
+        console.log(reservations);
+        let countMorning = 0;
+        let countEverning = 0;
+        reservations.map((x) => {
+          if (x.period === 'MORNING') countMorning++;
+          else if (x.period === 'EVERNING') countEverning++;
+        });
+        if (createReservesDto.period == 'MORNING') {
+          if (countMorning < limit) {
+            await this.reservesRepository.save(createReservesDto);
+            return {
+              message: 'Salvo!',
+              error: false,
+            };
+          } else {
+            return {
+              message: 'Excedido o limite de reservas pela manhã!',
+              error: true,
+            };
+          }
+        } else {
+          if (countEverning < limit) {
+            await this.reservesRepository.save(createReservesDto);
+            return {
+              message: 'Salvo!',
+              error: false,
+            };
+          } else {
+            return {
+              message: 'Excedido o limite de reservas pela tarde!',
+              error: true,
+            };
+          }
+        }
       }
     }
   }
