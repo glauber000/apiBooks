@@ -12,6 +12,15 @@ export class Users {
   @Column()
   age: number;
 
+  @Column()
+  email: string;
+
+  @Column()
+  password: string;
+
+  @Column()
+  sn_administrator: string;
+
   @OneToMany(() => Reserves, (Reserve) => Reserve.user)
   reserves: Reserves[];
 }

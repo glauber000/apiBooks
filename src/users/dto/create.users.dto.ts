@@ -5,4 +5,6 @@ export class CreateUsersDto {
   name: string;
   age: number;
   reserves: Reserves[];
+  email?: string;
+  password?: string;
 }
