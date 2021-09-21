@@ -2,7 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { CreateUsersDto } from './dto/create.users.dto';
 import { Users } from './users.entity';
-import jwt from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
 
 @Injectable()
 export class UsersService {
@@ -28,6 +28,10 @@ export class UsersService {
     });
   }
 
+  async findById(id: number) {
+    return await this.usersRepository.findOne(id);
+  }
+
   async loginUser(email: string, password: string) {
     const user = await this.findOne(email, password);
     const SECRETE_KEY_JWT = '171695f6c9200446a95637aa75f2c33e';
@@ -38,6 +42,7 @@ export class UsersService {
           email: user.email,
           name: user.name,
           age: user.age,
+          sn_administrator: user.roles,
         },
       },
       SECRETE_KEY_JWT,

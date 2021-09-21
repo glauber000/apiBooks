@@ -1,7 +1,7 @@
 Users
 Adicionar email e senha nos usuarios - ok
 
-Criar uma rota para fazer login do usuario utilizando jwt
+Criar uma rota para fazer login do usuario utilizando jwt - ok
 
 Configuration
-Criar uma rota para alterar configuração rota privada 
+Criar uma rota para alterar configuração rota privada - ok

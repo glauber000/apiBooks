@@ -19,7 +19,7 @@ export class Users {
   password: string;
 
   @Column()
-  sn_administrator: string;
+  roles: string;
 
   @OneToMany(() => Reserves, (Reserve) => Reserve.user)
   reserves: Reserves[];
